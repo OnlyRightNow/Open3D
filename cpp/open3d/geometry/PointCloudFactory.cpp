@@ -83,6 +83,10 @@ std::shared_ptr<PointCloud> CreatePointCloudFromRGBDImageT(
     auto focal_length = intrinsic.GetFocalLength();
     auto principal_point = intrinsic.GetPrincipalPoint();
     double scale = (sizeof(TC) == 1) ? 255.0 : 1.0;
+    // Channel offsets of G and B: gray (NC = 1) replicates channel 0, while
+    // RGB and RGBA (NC = 3, 4) use channels 1 and 2 and ignore alpha.
+    constexpr int kG = (NC >= 3) ? 1 : 0;
+    constexpr int kB = (NC >= 3) ? 2 : 0;
     int num_valid_pixels;
     if (!project_valid_depth_only) {
         num_valid_pixels = image.depth_.height_ * image.depth_.width_;
@@ -107,8 +111,7 @@ std::shared_ptr<PointCloud> CreatePointCloudFromRGBDImageT(
                         camera_pose * Eigen::Vector4d(x, y, z, 1.0);
                 pointcloud->points_[cnt] = point.block<3, 1>(0, 0);
                 pointcloud->colors_[cnt++] =
-                        Eigen::Vector3d(pc[0], pc[(NC - 1) / 2], pc[NC - 1]) /
-                        scale;
+                        Eigen::Vector3d(pc[0], pc[kG], pc[kB]) / scale;
             } else if (!project_valid_depth_only) {
                 double z = std::numeric_limits<float>::quiet_NaN();
                 double x = std::numeric_limits<float>::quiet_NaN();

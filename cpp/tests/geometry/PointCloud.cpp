@@ -1553,5 +1553,42 @@ TEST(PointCloud, CreateFromRGBDImage) {
     // visualization::DrawGeometries({pcd}); // Uncomment for manual check
 }
 
+TEST(PointCloud, CreateFromRGBDImageColorChannels) {
+    // Uniform 2x1 depth at z = 1. Colors from 3 and 4 channel images must map
+    // to RGB with the alpha channel ignored (issue #5788).
+    camera::PinholeCameraIntrinsic intrinsic(2, 1, 1.0, 1.0, 0.0, 0.0);
+    geometry::Image depth;
+    depth.Prepare(2, 1, 1, 4);
+    depth.PointerAs<float>()[0] = 1.0f;
+    depth.PointerAs<float>()[1] = 1.0f;
+
+    const std::vector<uint8_t> rgba = {10, 100, 200, 255};
+    const Eigen::Vector3d expected = Eigen::Vector3d(10, 100, 200) / 255.0;
+    for (int num_channels : {3, 4}) {
+        geometry::Image color;
+        color.Prepare(2, 1, num_channels, 1);
+        for (int px = 0; px < 2; ++px) {
+            for (int c = 0; c < num_channels; ++c) {
+                color.data_[px * num_channels + c] = rgba[c];
+            }
+        }
+        auto pcd = geometry::PointCloud::CreateFromRGBDImage(
+                geometry::RGBDImage(color, depth), intrinsic);
+        ASSERT_EQ(pcd->colors_.size(), 2u);
+        ExpectEQ(pcd->colors_[0], expected);
+        ExpectEQ(pcd->colors_[1], expected);
+    }
+
+    // Single channel float intensity is replicated to gray.
+    geometry::Image gray;
+    gray.Prepare(2, 1, 1, 4);
+    gray.PointerAs<float>()[0] = 0.5f;
+    gray.PointerAs<float>()[1] = 0.5f;
+    auto pcd = geometry::PointCloud::CreateFromRGBDImage(
+            geometry::RGBDImage(gray, depth), intrinsic);
+    ASSERT_EQ(pcd->colors_.size(), 2u);
+    ExpectEQ(pcd->colors_[0], Eigen::Vector3d(0.5, 0.5, 0.5));
+}
+
 }  // namespace tests
 }  // namespace open3d

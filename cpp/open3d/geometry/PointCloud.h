@@ -525,7 +525,8 @@ public:
     /// point is: z = d / depth_scale\n x = (u - cx) * z / fx\n y = (v - cy) * z
     /// / fy\n
     ///
-    /// \param image The input image.
+    /// \param image The input image. Color may be 1-channel float intensity or
+    /// 3/4-channel RGB(A); the alpha channel is ignored.
     /// \param intrinsic Intrinsic parameters of the camera.
     /// \param extrinsic Extrinsic parameters of the camera.
     ///

@@ -109,6 +109,32 @@ TEST_P(AxisAlignedBoundingBoxPermuteDevicePairs, CopyDevice) {
               aabb.GetMinBound().GetDtype());
 }
 
+TEST_P(AxisAlignedBoundingBoxPermuteDevicePairs, CopyDeviceKeepsBounds) {
+    core::Device dst_device;
+    core::Device src_device;
+    std::tie(dst_device, src_device) = GetParam();
+
+    // Bounds that exclude the origin and a Float64 dtype must survive To()
+    // and Clone() (issue #6721).
+    for (const core::Dtype &dtype : {core::Float32, core::Float64}) {
+        core::Tensor min_bound =
+                core::Tensor::Init<double>({-3, -3, -3}, src_device).To(dtype);
+        core::Tensor max_bound =
+                core::Tensor::Init<double>({-1, -1, -1}, src_device).To(dtype);
+        t::geometry::AxisAlignedBoundingBox aabb(min_bound, max_bound);
+
+        for (const t::geometry::AxisAlignedBoundingBox &box :
+             {aabb.To(dst_device, /*copy=*/true), aabb.Clone()}) {
+            EXPECT_EQ(box.GetDtype(), dtype);
+            EXPECT_EQ(box.GetColor().GetDtype(), dtype);
+            EXPECT_TRUE(
+                    box.GetMinBound().AllClose(min_bound.To(box.GetDevice())));
+            EXPECT_TRUE(
+                    box.GetMaxBound().AllClose(max_bound.To(box.GetDevice())));
+        }
+    }
+}
+
 TEST_P(AxisAlignedBoundingBoxPermuteDevices, Clone_Clear_IsEmpty) {
     core::Device device = GetParam();
 

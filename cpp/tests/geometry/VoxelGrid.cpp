@@ -45,6 +45,30 @@ TEST(VoxelGrid, GetVoxel) {
              Eigen::Vector3i(0, 1, 0));
 }
 
+// Points outside [min_bound, max_bound] are skipped and the bounds are
+// inclusive (issues #2766, #4569).
+TEST(VoxelGrid, CreateFromPointCloudWithinBounds) {
+    geometry::PointCloud pcd;
+    pcd.points_ = {Eigen::Vector3d(0.1, 0.1, 0.1),  // inside -> (2, 2, 2)
+                   Eigen::Vector3d(0.5, 0.5, 0.5),  // on max_bound -> (4, 4, 4)
+                   Eigen::Vector3d(5.0, 5.0, 5.0),  // outside
+                   Eigen::Vector3d(-3.0, 0.0, 0.0),  // outside
+                   Eigen::Vector3d(0.1, 0.1, 0.6)};  // outside (z only)
+    auto voxel_grid = geometry::VoxelGrid::CreateFromPointCloudWithinBounds(
+            pcd, 0.25, Eigen::Vector3d(-0.5, -0.5, -0.5),
+            Eigen::Vector3d(0.5, 0.5, 0.5));
+    ExpectEQ(voxel_grid->origin_, Eigen::Vector3d(-0.5, -0.5, -0.5));
+    EXPECT_EQ(voxel_grid->voxels_.size(), 2u);
+    EXPECT_EQ(voxel_grid->voxels_.count(Eigen::Vector3i(2, 2, 2)), 1u);
+    EXPECT_EQ(voxel_grid->voxels_.count(Eigen::Vector3i(4, 4, 4)), 1u);
+
+    // CreateFromPointCloud pads the bounds and must keep every point.
+    auto full_grid = geometry::VoxelGrid::CreateFromPointCloud(pcd, 0.25);
+    for (bool included : full_grid->CheckIfIncluded(pcd.points_)) {
+        EXPECT_TRUE(included);
+    }
+}
+
 TEST(VoxelGrid, Visualization) {
     auto voxel_grid = std::make_shared<geometry::VoxelGrid>();
     voxel_grid->origin_ = Eigen::Vector3d(0, 0, 0);

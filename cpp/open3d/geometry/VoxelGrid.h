@@ -218,6 +218,8 @@ public:
     /// color value of the points that fall into it (if the
     /// PointCloud has colors).
     /// The bounds of the created VoxelGrid are defined by the given parameters.
+    /// Points outside [min_bound, max_bound] (inclusive) are skipped. The grid
+    /// origin is min_bound.
     ///
     /// \param input The input PointCloud.
     /// \param voxel_size Voxel size of of the VoxelGrid construction.

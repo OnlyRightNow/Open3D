@@ -65,6 +65,12 @@ std::shared_ptr<VoxelGrid> VoxelGrid::CreateFromPointCloudWithinBounds(
     Eigen::Vector3i voxel_index;
     bool has_colors = input.HasColors();
     for (int i = 0; i < (int)input.points_.size(); i++) {
+        // Skip points outside [min_bound, max_bound] (inclusive, as for
+        // AxisAlignedBoundingBox). Written so that NaN points are skipped too.
+        if (!((input.points_[i].array() >= min_bound.array()).all() &&
+              (input.points_[i].array() <= max_bound.array()).all())) {
+            continue;
+        }
         ref_coord = (input.points_[i] - min_bound) / voxel_size;
         voxel_index << int(floor(ref_coord(0))), int(floor(ref_coord(1))),
                 int(floor(ref_coord(2)));

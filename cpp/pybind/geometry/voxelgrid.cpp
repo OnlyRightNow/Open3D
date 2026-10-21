@@ -154,7 +154,8 @@ void pybind_voxelgrid_definitions(py::module &m) {
                     "VoxelPoolingMode, e.g. by default the average color "
                     "value of the points that fall into it (if the "
                     "PointCloud has colors). The bounds of the created "
-                    "VoxelGrid are defined by the given parameters.",
+                    "VoxelGrid are defined by the given parameters. Points "
+                    "outside [min_bound, max_bound] (inclusive) are skipped.",
                     "input"_a, "voxel_size"_a, "min_bound"_a, "max_bound"_a,
                     py::arg_v("pooling_mode", VoxelGrid::VoxelPoolingMode::AVG,
                               "VoxelPoolingMode.AVG"))

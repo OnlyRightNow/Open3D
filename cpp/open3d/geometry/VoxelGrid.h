@@ -168,7 +168,9 @@ public:
             const camera::PinholeCameraParameters &camera_parameter,
             bool keep_voxels_outside_image);
 
-    /// Create VoxelGrid from Octree
+    /// Create VoxelGrid from Octree. Each color leaf node becomes one voxel.
+    /// The voxel size is set to the smallest leaf size and the origin to the
+    /// octree origin.
     ///
     /// \param octree The input Octree.
     void CreateFromOctree(const Octree &octree);

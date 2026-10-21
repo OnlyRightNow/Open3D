@@ -120,7 +120,8 @@ void pybind_voxelgrid_definitions(py::module &m) {
             .def("to_octree", &VoxelGrid::ToOctree, "max_depth"_a,
                  "Convert to Octree.")
             .def("create_from_octree", &VoxelGrid::CreateFromOctree, "octree"_a,
-                 "Convert from Octree.")
+                 "Convert from Octree. Each color leaf node becomes one voxel. "
+                 "voxel_size is set to the smallest leaf size.")
             .def("get_voxel_center_coordinate",
                  &VoxelGrid::GetVoxelCenterCoordinate, "idx"_a,
                  "Returns the center coordinate of a voxel given its grid "

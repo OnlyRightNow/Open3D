@@ -341,7 +341,9 @@ void pybind_octree_definitions(py::module &m) {
             .def("convert_from_point_cloud", &Octree::ConvertFromPointCloud,
                  "point_cloud"_a, "size_expand"_a = 0.01,
                  "Convert octree from point cloud.")
-            .def("to_voxel_grid", &Octree::ToVoxelGrid, "Convert to VoxelGrid.")
+            .def("to_voxel_grid", &Octree::ToVoxelGrid,
+                 "Convert to VoxelGrid. Each color leaf node becomes one "
+                 "voxel of the leaf size.")
             .def("create_from_voxel_grid", &Octree::CreateFromVoxelGrid,
                  "voxel_grid"_a
                  "Convert from VoxelGrid.")

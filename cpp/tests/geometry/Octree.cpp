@@ -314,6 +314,38 @@ TEST(Octree, EightCubesTraverse) {
     ExpectEQ(colors_traversed, colors);
 }
 
+// Each color leaf becomes one voxel of the leaf size (issue #3269).
+TEST(Octree, EightCubesToVoxelGrid) {
+    std::vector<Eigen::Vector3d> points{
+            Eigen::Vector3d(0.5, 0.5, 0.5), Eigen::Vector3d(1.5, 0.5, 0.5),
+            Eigen::Vector3d(0.5, 1.5, 0.5), Eigen::Vector3d(1.5, 1.5, 0.5),
+            Eigen::Vector3d(0.5, 0.5, 1.5), Eigen::Vector3d(1.5, 0.5, 1.5),
+            Eigen::Vector3d(0.5, 1.5, 1.5), Eigen::Vector3d(1.5, 1.5, 1.5),
+    };
+    std::vector<Eigen::Vector3d> colors{
+            Eigen::Vector3d(0.0, 0.0, 0.0), Eigen::Vector3d(0.1, 0.0, 0.0),
+            Eigen::Vector3d(0.0, 0.1, 0.0), Eigen::Vector3d(0.1, 0.1, 0.0),
+            Eigen::Vector3d(0.0, 0.0, 0.1), Eigen::Vector3d(0.1, 0.0, 0.1),
+            Eigen::Vector3d(0.0, 0.1, 0.1), Eigen::Vector3d(0.1, 0.1, 0.1),
+    };
+    geometry::Octree octree(1, Eigen::Vector3d(0, 0, 0), 2);
+    for (size_t i = 0; i < points.size(); ++i) {
+        octree.InsertPoint(
+                points[i], geometry::OctreeColorLeafNode::GetInitFunction(),
+                geometry::OctreeColorLeafNode::GetUpdateFunction(colors[i]));
+    }
+
+    auto voxel_grid = octree.ToVoxelGrid();
+    EXPECT_EQ(voxel_grid->voxel_size_, 1.0);
+    ExpectEQ(voxel_grid->origin_, Eigen::Vector3d(0, 0, 0));
+    ASSERT_EQ(voxel_grid->voxels_.size(), points.size());
+    for (size_t i = 0; i < points.size(); ++i) {
+        const Eigen::Vector3i index = voxel_grid->GetVoxel(points[i]);
+        ASSERT_EQ(voxel_grid->voxels_.count(index), 1u);
+        ExpectEQ(voxel_grid->voxels_.at(index).color_, colors[i]);
+    }
+}
+
 TEST(Octree, FragmentPLYCheckClone) {
     // Build src_octree
     geometry::PointCloud pcd;

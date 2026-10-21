@@ -122,6 +122,22 @@ def test_octree_voxel_grid_convert():
     # o3d.visualization.draw_geometries([octree_copy])
 
 
+def test_octree_to_voxel_grid_voxel_size():
+    # Each color leaf becomes one voxel of the leaf size (issue #3269).
+    octree = o3d.geometry.Octree(1, [0, 0, 0], 2)
+    for point, color in zip(_eight_cubes_points, _eight_cubes_colors):
+        f_init = o3d.geometry.OctreeColorLeafNode.get_init_function()
+        f_update = o3d.geometry.OctreeColorLeafNode.get_update_function(color)
+        octree.insert_point(point, f_init, f_update)
+    voxel_grid = octree.to_voxel_grid()
+    assert voxel_grid.voxel_size == 1.0
+    voxels = {tuple(v.grid_index): v.color for v in voxel_grid.get_voxels()}
+    assert len(voxels) == 8
+    for point, color in zip(_eight_cubes_points, _eight_cubes_colors):
+        np.testing.assert_allclose(voxels[tuple(np.floor(point).astype(int))],
+                                   color)
+
+
 def test_locate_leaf_node():
     pcd_data = o3d.data.PLYPointCloud()
     pcd = o3d.io.read_point_cloud(pcd_data.path)

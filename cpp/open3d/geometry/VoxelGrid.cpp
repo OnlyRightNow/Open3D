@@ -266,6 +266,9 @@ void VoxelGrid::CreateFromOctree(const Octree &octree) {
     // Prepare dimensions for voxel
     origin_ = octree.origin_;
     voxels_.clear();
+    // The voxel size is the smallest leaf size. Start from the octree size (an
+    // upper bound), not from the current voxel_size_, which defaults to 0.
+    voxel_size_ = octree.size_;
     for (const auto &it : map_node_to_node_info) {
         voxel_size_ = std::min(voxel_size_, it.second->size_);
     }

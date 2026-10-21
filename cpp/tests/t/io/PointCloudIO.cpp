@@ -580,6 +580,49 @@ TEST(TPointCloudIO, ReadWritePointCloudAsPCD) {
     EXPECT_TRUE(ascii_f32_pcd.GetPointColors().AllClose(color_uint8));
 }
 
+// PCL pads records with fields named "_". They must be skipped, not loaded as
+// a "_" attribute (issue #6437).
+TEST(TPointCloudIO, ReadPCDWithPaddingFields) {
+    const std::string header =
+            "# .PCD v0.7\nVERSION 0.7\nFIELDS x y z _ intensity _\n"
+            "SIZE 4 4 4 1 4 2\nTYPE F F F U F U\nCOUNT 1 1 1 4 1 3\n"
+            "WIDTH 2\nHEIGHT 1\nVIEWPOINT 0 0 0 1 0 0 0\nPOINTS 2\n";
+    const std::string dir = utility::filesystem::GetTempDirectoryPath();
+
+    const std::string ascii_path = dir + "/test_pcd_padding_ascii.pcd";
+    {
+        std::ofstream out(ascii_path);
+        out << header << "DATA ascii\n"
+            << "1 2 3 0 0 0 0 7 0 0 0\n4 5 6 0 0 0 0 8 0 0 0\n";
+    }
+    // Binary record: 3 x float, 4 x uint8 pad, float, 3 x uint16 pad.
+    const std::string binary_path = dir + "/test_pcd_padding_binary.pcd";
+    {
+        std::ofstream out(binary_path, std::ios::binary);
+        out << header << "DATA binary\n";
+        const float xyzi[2][4] = {{1, 2, 3, 7}, {4, 5, 6, 8}};
+        const char pad[6] = {0};
+        for (const auto &p : xyzi) {
+            out.write(reinterpret_cast<const char *>(p), 3 * sizeof(float));
+            out.write(pad, 4);
+            out.write(reinterpret_cast<const char *>(p + 3), sizeof(float));
+            out.write(pad, 6);
+        }
+    }
+
+    const core::Tensor positions =
+            core::Tensor::Init<float>({{1, 2, 3}, {4, 5, 6}});
+    const core::Tensor intensity = core::Tensor::Init<float>({{7}, {8}});
+    for (const std::string &path : {ascii_path, binary_path}) {
+        t::geometry::PointCloud pcd;
+        EXPECT_TRUE(t::io::ReadPointCloud(path, pcd,
+                                          {"auto", false, false, false}));
+        EXPECT_FALSE(pcd.HasPointAttr("_"));
+        EXPECT_TRUE(pcd.GetPointPositions().AllClose(positions));
+        EXPECT_TRUE(pcd.GetPointAttr("intensity").AllClose(intensity));
+    }
+}
+
 // Test 3DGS ply to splat conversion
 TEST(TPointCloudIO, ReadWrite3DGSPLYToSPLAT) {
     std::string filename_ply = utility::filesystem::GetTempDirectoryPath() +

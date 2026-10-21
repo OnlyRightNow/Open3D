@@ -7,6 +7,7 @@
 
 #include <liblzf/lzf.h>
 
+#include <algorithm>
 #include <cinttypes>
 #include <cstdint>
 #include <cstdio>
@@ -130,6 +131,14 @@ static bool InitializeHeader(PCDHeader &header) {
         utility::LogWarning("[Write PCD] PCD has no fields.");
         return false;
     }
+    // PCL names padding fields "_". Drop them so they are neither loaded as an
+    // attribute nor read. The remaining fields keep their offsets.
+    header.fields.erase(
+            std::remove_if(header.fields.begin(), header.fields.end(),
+                           [](const PCLPointField &field) {
+                               return field.name == "_";
+                           }),
+            header.fields.end());
     header.has_attr["positions"] = false;
     header.has_attr["normals"] = false;
     header.has_attr["colors"] = false;

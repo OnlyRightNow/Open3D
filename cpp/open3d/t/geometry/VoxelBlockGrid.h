@@ -197,6 +197,8 @@ public:
     /// Estimated point numbers optionally speeds up the process by a one-pass
     /// extraction with pre-allocated buffers. Use -1 when no estimate is
     /// available.
+    /// Returns an empty point cloud if no surface passes the weight threshold.
+    /// Colors are included only if the grid has a "color" attribute.
     PointCloud ExtractPointCloud(float weight_threshold = 3.0f,
                                  int estimated_point_number = -1);
 
@@ -209,6 +211,8 @@ public:
     /// Estimated point numbers optionally speeds up the process by a one-pass
     /// extraction with pre-allocated buffers. Use -1 when no estimate is
     /// available.
+    /// Returns an empty mesh if no surface passes the weight threshold. Colors
+    /// are included only if the grid has a "color" attribute.
     TriangleMesh ExtractTriangleMesh(float weight_threshold = 3.0f,
                                      int estimated_vertex_numer = -1);
 

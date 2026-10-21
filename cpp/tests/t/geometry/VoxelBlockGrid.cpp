@@ -322,6 +322,44 @@ TEST_P(VoxelBlockGridPermuteDevices, Integrate) {
     }
 }
 
+TEST_P(VoxelBlockGridPermuteDevices, ExtractEmptyWithoutColor) {
+    core::Device device = GetParam();
+    core::Tensor intrinsic = GetIntrinsicTensor();
+    core::Tensor extrinsic =
+            core::Tensor::Eye(4, core::Float64, core::Device());
+    const float depth_scale = 1000.0f;
+    const float depth_max = 3.0f;
+
+    // Synthetic plane at 1.503 m (not on a voxel boundary).
+    Image depth(core::Tensor::Full({480, 640, 1}, 1503, core::UInt16, device));
+
+    for (auto backend : EnumerateBackends(device)) {
+        auto vbg = VoxelBlockGrid({"tsdf", "weight"},
+                                  {core::Float32, core::Float32}, {{1}, {1}},
+                                  3.0 / 512, 8, 10000, device, backend);
+        core::Tensor block_coords = vbg.GetUniqueBlockCoordinates(
+                depth, intrinsic, extrinsic, depth_scale, depth_max);
+        vbg.Integrate(block_coords, depth, intrinsic, extrinsic, depth_scale,
+                      depth_max);
+
+        // Non-empty extraction without a color attribute has no colors.
+        PointCloud pcd = vbg.ExtractPointCloud(/*weight_threshold=*/0.0f);
+        EXPECT_GT(pcd.GetPointPositions().GetLength(), 0);
+        EXPECT_FALSE(pcd.HasPointColors());
+
+        // One frame gives weight 1 < default threshold 3, so nothing is
+        // extracted. This must return empty geometry (issue #5805).
+        pcd = vbg.ExtractPointCloud();
+        EXPECT_EQ(pcd.GetPointPositions().GetLength(), 0);
+        EXPECT_FALSE(pcd.HasPointColors());
+
+        TriangleMesh mesh = vbg.ExtractTriangleMesh();
+        EXPECT_EQ(mesh.GetVertexPositions().GetLength(), 0);
+        EXPECT_EQ(mesh.GetTriangleIndices().GetLength(), 0);
+        EXPECT_FALSE(mesh.HasVertexColors());
+    }
+}
+
 TEST_P(VoxelBlockGridPermuteDevices, IO) {
     core::Device device = GetParam();
 #if defined(_WIN32)

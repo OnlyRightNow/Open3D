@@ -426,7 +426,9 @@ PointCloud VoxelBlockGrid::ExtractPointCloud(float weight_threshold,
     auto pcd = PointCloud(points.Slice(0, 0, estimated_point_number));
     pcd.SetPointNormals(normals.Slice(0, 0, estimated_point_number));
 
-    if (colors.GetLength() == normals.GetLength()) {
+    // Colors exist only if the grid has a color attribute. A length check alone
+    // also matches an empty extraction without colors.
+    if (block_value_map.Contains("color")) {
         pcd.SetPointColors(colors.Slice(0, 0, estimated_point_number));
     }
 
@@ -464,7 +466,8 @@ TriangleMesh VoxelBlockGrid::ExtractTriangleMesh(float weight_threshold,
 
     TriangleMesh mesh(vertices, triangles);
     mesh.SetVertexNormals(vertex_normals);
-    if (vertex_colors.GetLength() == vertices.GetLength()) {
+    // Vertex colors exist only if the grid has a color attribute.
+    if (block_value_map.Contains("color")) {
         mesh.SetVertexColors(vertex_colors);
     }
 
